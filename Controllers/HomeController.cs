@@ -8,4 +8,23 @@ public class HomeController : Controller
   public HomeController(DataContext db) => _dataContext = db;
 
   public IActionResult Index() => View(_dataContext.Blogs.OrderBy(b => b.Name));
+  public IActionResult AddBlog() => View();
+  [HttpPost]
+  [ValidateAntiForgeryToken]
+  public IActionResult AddBlog(Blog model)
+  {
+    if (ModelState.IsValid)
+    {
+      if (_dataContext.Blogs.Any(b => b.Name == model.Name))
+      {
+        ModelState.AddModelError("", "Name must be unique");
+      }
+      else
+      {
+        _dataContext.AddBlog(model);
+        return RedirectToAction("Index");
+      }
+    }
+    return View();
+  }
 }
