@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 
 public class HomeController : Controller
 {
@@ -8,7 +8,9 @@ public class HomeController : Controller
   public HomeController(DataContext db) => _dataContext = db;
 
   public IActionResult Index() => View(_dataContext.Blogs.OrderBy(b => b.Name));
+  [Authorize(Roles = "blogs-moderate")]
   public IActionResult AddBlog() => View();
+  [Authorize(Roles = "blogs-moderate")]
   [HttpPost]
   [ValidateAntiForgeryToken]
   public IActionResult AddBlog(Blog model)
@@ -27,6 +29,7 @@ public class HomeController : Controller
     }
     return View();
   }
+  [Authorize(Roles = "blogs-moderate")]
   public IActionResult DeleteBlog(int id)
   {
     _dataContext.DeleteBlog(_dataContext.Blogs.FirstOrDefault(b => b.BlogId == id));
@@ -37,4 +40,32 @@ public class HomeController : Controller
     blog = _dataContext.Blogs.FirstOrDefault(b => b.BlogId == id),
     Posts = _dataContext.Posts.Where(p => p.BlogId == id)
   });
+  public IActionResult AddPost(int id)
+  {
+    ViewBag.BlogId = id;
+    return View();
+  }
+
+  [HttpPost]
+  [ValidateAntiForgeryToken]
+  public IActionResult AddPost(int id, Post post)
+  {
+    post.BlogId = id;
+    if (ModelState.IsValid)
+    {
+      _dataContext.AddPost(post);
+      return RedirectToAction("BlogDetail", new { id = id });
+    }
+    @ViewBag.BlogId = id;
+    return View();
+  }
+
+  public IActionResult DeletePost(int id)
+  {
+    Post post = _dataContext.Posts.FirstOrDefault(p => p.PostId == id);
+    int BlogId = post.BlogId;
+    _dataContext.DeletePost(post);
+    return RedirectToAction("BlogDetail", new { id = BlogId });
+  }
 }
+
